@@ -1,0 +1,110 @@
+<!-- Main Layout Container -->
+<div class="flex flex-col min-h-screen bg-gray-100 dark:bg-gray-900">
+  <!-- Navbar -->
+  <nav class="bg-white dark:bg-gray-800 shadow-md dark:shadow-lg">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <!-- Logo/App Title -->
+        <div class="flex-shrink-0">
+          <a routerLink="/app/home" class="text-2xl font-bold text-indigo-600 dark:text-indigo-400">BookLend</a>
+        </div>
+
+        <!-- Navigation Links -->
+        <div class="hidden md:block">
+          <div class="ml-10 flex items-baseline space-x-4">
+            <a routerLink="/app/home"
+               routerLinkActive="font-semibold border-b-2 border-indigo-500 text-indigo-600 dark:text-indigo-400"
+               [routerLinkActiveOptions]="{exact: true}"
+               class="px-3 py-2 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700">
+              Home
+            </a>
+            <a routerLink="/app/add-book"
+               routerLinkActive="font-semibold border-b-2 border-indigo-500 text-indigo-600 dark:text-indigo-400"
+               [routerLinkActiveOptions]="{exact: true}"
+               class="px-3 py-2 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700">
+              Add Book
+            </a>
+            <a routerLink="/app/manage-requests"
+               routerLinkActive="font-semibold border-b-2 border-indigo-500 text-indigo-600 dark:text-indigo-400"
+               [routerLinkActiveOptions]="{exact: true}"
+               class="px-3 py-2 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700">
+              Manage Requests
+            </a>
+          </div>
+        </div>
+
+        <!-- Logout Button -->
+        <div class="hidden md:block">
+          <div class="ml-4 flex items-center md:ml-6">
+            <button (click)="logout()"
+                    class="px-3 py-2 rounded-md text-sm font-medium text-white bg-red-600 hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600">
+              Logout
+            </button>
+          </div>
+        </div>
+
+        <!-- Mobile menu button -->
+        <div class="-mr-2 flex md:hidden">
+          <button type="button" 
+                  (click)="toggleMobileMenu()" 
+                  class="bg-gray-200 dark:bg-gray-700 inline-flex items-center justify-center p-2 rounded-md text-gray-600 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white" 
+                  aria-controls="mobile-menu" 
+                  [attr.aria-expanded]="isMobileMenuOpen">
+            <span class="sr-only">Open main menu</span>
+            <!-- Icon when menu is closed -->
+            <svg [class.hidden]="isMobileMenuOpen" [class.block]="!isMobileMenuOpen" class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+            <!-- Icon when menu is open -->
+            <svg [class.hidden]="!isMobileMenuOpen" [class.block]="isMobileMenuOpen" class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile menu, show/hide based on menu state -->
+    <div id="mobile-menu" [class.hidden]="!isMobileMenuOpen" class="md:hidden">
+      <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+        <a routerLink="/app/home"
+           routerLinkActive="bg-indigo-500 text-white"
+           [routerLinkActiveOptions]="{exact: true}"
+           class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700">
+          Home
+        </a>
+        <a routerLink="/app/add-book"
+           routerLinkActive="bg-indigo-500 text-white"
+           [routerLinkActiveOptions]="{exact: true}"
+           class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700">
+          Add Book
+        </a>
+        <a routerLink="/app/manage-requests"
+           routerLinkActive="bg-indigo-500 text-white"
+           [routerLinkActiveOptions]="{exact: true}"
+           class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700">
+          Manage Requests
+        </a>
+      </div>
+      <div class="pt-4 pb-3 border-t border-gray-200 dark:border-gray-700">
+        <div class="px-2 space-y-1">
+          <button (click)="logout()"
+                  class="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-white bg-red-600 hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600">
+            Logout
+          </button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content Area -->
+  <main class="flex-grow">
+    <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+      <!-- Router outlet for child components -->
+      <router-outlet></router-outlet>
+    </div>
+  </main>
+
+  <!-- Footer (Optional Placeholder) -->
+  <footer class="bg-white dark:bg-gray-800 shadow-inner mt-auto">
+    <div class="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8 text-center text-gray-500 dark:text-gray-400 text-sm">
+      &copy; 2025 BookLend. All rights reserved.
+    </div>
+  </footer>
+</div>

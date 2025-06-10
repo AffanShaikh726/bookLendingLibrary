@@ -7,6 +7,7 @@ import { BorrowService } from '../../services/borrow.service';
 import { AuthService } from '../../services/auth.service';
 import { Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
+import { ChangeDetectorRef } from '@angular/core';
 
 @Component({
   selector: 'app-home',
@@ -36,7 +37,8 @@ export class HomeComponent implements OnInit, OnDestroy {
     private borrowService: BorrowService,
     private authService: AuthService,
     private router: Router,
-    private fb: FormBuilder
+    private fb: FormBuilder,
+    private cdRef: ChangeDetectorRef
   ) { 
     this.initializeForm();
   }
@@ -54,20 +56,18 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.currentUserId = currentUser ? currentUser.id : null;
     this.loadBooks();
     
-    // Subscribe to router events to handle navigation
     this.routeSubscription = this.router.events.pipe(
       filter(event => event instanceof NavigationEnd)
     ).subscribe(() => {
-      // Close modal when navigating away from home
       if (!(this.router.url === '/app/home' || this.router.url === '/app')) {
-        this.cleanupModal(true); // Force cleanup when navigating away
+        this.cleanupModal(true);
       } else {
         console.log('Home component activated, refreshing books');
         this.loadBooks();
       }
+      this.cdRef.detectChanges();  // Trigger change detection after navigation
     });
     
-    // Clean up any existing modal state
     this.cleanupModal(true);
   }
   
@@ -85,6 +85,7 @@ export class HomeComponent implements OnInit, OnDestroy {
         this.addBookForm.reset();
         this.addBookError = null;
         this.isSubmitting = false;
+        this.cdRef.detectChanges();  // Trigger change detection
       }, 0);
     }
   }
@@ -129,6 +130,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   async requestBook(book: Book): Promise<void> {
     if (!book.id) return;
     this.requestStates[book.id] = { loading: true };
+    this.cdRef.detectChanges();  // Trigger change detection
 
     try {
       const { data, error } = await this.borrowService.createBorrowRequest(book);
@@ -140,6 +142,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     } catch (err: any) {
       this.requestStates[book.id] = { loading: false, error: err.message || 'An unexpected error occurred.' };
     }
+    this.cdRef.detectChanges();  // Trigger change detection
   }
 
   // Show delete confirmation dialog
@@ -166,6 +169,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   async deleteBook(book: Book): Promise<void> {
     if (!book.id) return;
     this.deleteStates[book.id] = { ...this.deleteStates[book.id], loading: true, showConfirmation: false };
+    this.cdRef.detectChanges();  // Trigger change detection
 
     try {
       const { data, error } = await this.bookService.deleteBook(book.id);
@@ -178,6 +182,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     } catch (err: any) {
       this.deleteStates[book.id] = { loading: false, showConfirmation: false, error: err.message || 'An unexpected error occurred.' };
     }
+    this.cdRef.detectChanges();  // Trigger change detection
   }
 
   // Modal methods
@@ -189,6 +194,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     if (this.showAddBookModal) return; // Prevent duplicate opens
     this.showAddBookModal = true;
     document.body.style.overflow = 'hidden'; // Prevent scrolling when modal is open
+    this.cdRef.detectChanges();  // Trigger change detection
   }
 
   closeAddBookModal(event?: Event): void {
@@ -198,6 +204,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     }
     if (this.isSubmitting) return; // Prevent closing while submitting
     this.cleanupModal();
+    this.cdRef.detectChanges();  // Trigger change detection
   }
 
   async onSubmit(): Promise<void> {

@@ -39,13 +39,15 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
   // Close mobile menu when clicking outside
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
+    if (!this.isMobileMenuOpen) return;
+    
     const target = event.target as HTMLElement;
     const mobileMenu = document.getElementById('mobile-menu');
     const mobileMenuButton = document.querySelector('[aria-controls="mobile-menu"]');
     
-    // Don't close if clicking on the menu button itself or if the menu isn't open
-    if (!this.isMobileMenuOpen || 
-        (mobileMenuButton && mobileMenuButton.contains(target))) {
+    // Don't close if clicking on the menu button or inside the menu
+    if ((mobileMenuButton && mobileMenuButton.contains(target)) || 
+        (mobileMenu && mobileMenu.contains(target))) {
       return;
     }
     
@@ -55,11 +57,9 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
     }
   }
 
-  toggleMobileMenu(event?: Event): void {
-    if (event) {
-      event.stopPropagation();
-      event.preventDefault();
-    }
+  toggleMobileMenu(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
     this.isMobileMenuOpen = !this.isMobileMenuOpen;
   }
   

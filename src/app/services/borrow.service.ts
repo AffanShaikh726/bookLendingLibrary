@@ -84,39 +84,91 @@ export class BorrowService {
       return { data: null, error: { message: 'User not authenticated.' } };
     }
 
-    // Fetch requests from the view where the current user is the owner of the book
-    const { data: viewData, error } = await this.supabase
-      .from('detailed_incoming_requests') // Query the view
-      .select('*') // Select all columns from the view
+    // First, get all requests for the current user's books
+    const { data: allRequests, error: fetchError } = await this.supabase
+      .from('borrow_requests')
+      .select(`
+        *,
+        books!inner(title, author)
+      `)
       .eq('owner_id', currentUser.id)
       .order('request_date', { ascending: false });
+    
+    // Get all borrower profiles in a separate query
+    const borrowerIds = [...new Set(allRequests?.map(req => req.borrower_id) || [])];
+    const { data: borrowerProfiles, error: profilesError } = await this.supabase
+      .from('profiles')
+      .select('id, email, username')
+      .in('id', borrowerIds);
+    
+    if (profilesError) {
+      console.error('Error fetching borrower profiles:', profilesError);
+    }
+    
+    // Create a map of user_id -> profile
+    const profilesMap = new Map();
+    borrowerProfiles?.forEach(profile => {
+      profilesMap.set(profile.id, profile);
+    });
 
-    if (error) {
-      return { data: null, error };
+    if (fetchError) {
+      return { data: null, error: fetchError };
     }
 
-    // Map the flat data from the view to the nested BorrowRequest structure
-    const mappedData: BorrowRequest[] | null = viewData ? viewData.map((item: any) => ({
-      id: item.id,
-      book_id: item.book_id,
-      borrower_id: item.borrower_id,
-      owner_id: item.owner_id,
-      status: item.status,
-      request_date: item.request_date,
-      approval_date: item.approval_date,
-      return_date: item.return_date,
-      updated_at: item.request_updated_at, // Use alias from view
-      due_date: item.due_date,
-      created_at: item.request_created_at, // Use alias from view
-      book: {
-        title: item.book_title,
-        author: item.book_author,
-      },
-      borrower: {
-        email: item.borrower_email,
-        username: item.borrower_username,
-      },
-    })) : null;
+    if (!allRequests) {
+      return { data: [], error: null };
+    }
+
+    // Track books that have an active (not returned) approved request for each borrower
+    const activeApprovedRequests = new Map<string, Set<string>>(); // bookId -> Set<borrowerId>
+  
+    // First pass: Identify all active approved requests (not returned)
+    allRequests.forEach(request => {
+      if (request.status === 'approved') {
+        if (!activeApprovedRequests.has(request.book_id)) {
+          activeApprovedRequests.set(request.book_id, new Set());
+        }
+        activeApprovedRequests.get(request.book_id)?.add(request.borrower_id);
+      }
+    });
+
+    // Second pass: Filter out pending requests for books where the same user has an active approved request
+    const filteredRequests = allRequests.filter(request => {
+      // Keep all requests that are not pending
+      if (request.status !== 'pending') {
+        return true;
+      }
+      
+      // For pending requests, check if there's an active approved request for this book and borrower
+      const hasActiveApprovedRequest = activeApprovedRequests.get(request.book_id)?.has(request.borrower_id);
+      return !hasActiveApprovedRequest;
+    });
+
+    // Map to the expected response format
+    const mappedData: BorrowRequest[] = filteredRequests.map(request => {
+      const borrowerProfile = profilesMap.get(request.borrower_id);
+      return {
+        id: request.id,
+        book_id: request.book_id,
+        borrower_id: request.borrower_id,
+        owner_id: request.owner_id,
+        status: request.status as BorrowRequestStatus,
+        request_date: request.request_date,
+        approval_date: request.approval_date,
+        return_date: request.return_date,
+        updated_at: request.updated_at,
+        due_date: request.due_date,
+        created_at: request.created_at,
+        book: {
+          title: request.books?.title || 'Unknown Book',
+          author: request.books?.author || 'Unknown Author',
+        },
+        borrower: {
+          email: borrowerProfile?.email || 'Unknown Email',
+          username: borrowerProfile?.username || 'Unknown User',
+        },
+      };
+    });
 
     return { data: mappedData, error: null };
   }
@@ -158,7 +210,12 @@ export class BorrowService {
 
     if (error) {
       console.error(`Error updating request ${requestId} to ${status}:`, error);
+      return { data: null, error };
     }
+    
+    // Note: Removed book update logic since the borrower information is managed in the borrow_requests table
+    // and there is no borrower_id column in the books table
+    
     return { data: data as BorrowRequest | null, error };
   }
 
@@ -186,8 +243,12 @@ export class BorrowService {
 
     if (error) {
       console.error(`Error marking request ${requestId} as returned:`, error);
+      return { data: null, error };
     }
+    
+    // Note: Removed book update logic since the borrower information is managed in the borrow_requests table
+    // and there is no borrower_id column in the books table
+    
     return { data: data as BorrowRequest | null, error };
   }
 }
-

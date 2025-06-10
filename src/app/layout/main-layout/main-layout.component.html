@@ -6,7 +6,7 @@
       <div class="flex items-center justify-between h-16">
         <!-- Logo/App Title -->
         <div class="flex-shrink-0">
-          <a routerLink="/app/home" class="text-2xl font-bold text-indigo-600 dark:text-indigo-400">BookLend</a>
+          <a routerLink="/app/home" class="text-2xl font-bold text-indigo-600 dark:text-indigo-400">BookShare</a>
         </div>
 
         <!-- Navigation Links -->
@@ -18,13 +18,7 @@
                class="px-3 py-2 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700">
               Home
             </a>
-            <a routerLink="/app/add-book"
-               routerLinkActive="font-semibold border-b-2 border-indigo-500 text-indigo-600 dark:text-indigo-400"
-               [routerLinkActiveOptions]="{exact: true}"
-               class="px-3 py-2 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700">
-              Add Book
-            </a>
-            <a routerLink="/app/manage-requests"
+<a routerLink="/app/manage-requests"
                routerLinkActive="font-semibold border-b-2 border-indigo-500 text-indigo-600 dark:text-indigo-400"
                [routerLinkActiveOptions]="{exact: true}"
                class="px-3 py-2 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700">
@@ -46,7 +40,7 @@
         <!-- Mobile menu button -->
         <div class="-mr-2 flex md:hidden">
           <button type="button" 
-                  (click)="toggleMobileMenu()" 
+                  (click)="toggleMobileMenu($event)" 
                   class="bg-gray-200 dark:bg-gray-700 inline-flex items-center justify-center p-2 rounded-md text-gray-600 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white" 
                   aria-controls="mobile-menu" 
                   [attr.aria-expanded]="isMobileMenuOpen">
@@ -63,24 +57,16 @@
     <!-- Mobile menu, show/hide based on menu state -->
     <div id="mobile-menu" [class.hidden]="!isMobileMenuOpen" class="md:hidden">
       <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-        <a routerLink="/app/home"
-           routerLinkActive="bg-indigo-500 text-white"
-           [routerLinkActiveOptions]="{exact: true}"
-           class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700">
-          Home
-        </a>
-        <a routerLink="/app/add-book"
-           routerLinkActive="bg-indigo-500 text-white"
-           [routerLinkActiveOptions]="{exact: true}"
-           class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700">
-          Add Book
-        </a>
-        <a routerLink="/app/manage-requests"
-           routerLinkActive="bg-indigo-500 text-white"
-           [routerLinkActiveOptions]="{exact: true}"
-           class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700">
-          Manage Requests
-        </a>
+              <a routerLink="/app/home" 
+                 routerLinkActive="bg-indigo-500 text-white"
+                 class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700">
+                Home
+              </a>
+              <a routerLink="/app/manage-requests" 
+                 routerLinkActive="bg-indigo-500 text-white"
+                 class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700">
+                Manage Requests
+              </a>
       </div>
       <div class="pt-4 pb-3 border-t border-gray-200 dark:border-gray-700">
         <div class="px-2 space-y-1">
@@ -104,7 +90,7 @@
   <!-- Footer (Optional Placeholder) -->
   <footer class="bg-white dark:bg-gray-800 shadow-inner mt-auto">
     <div class="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8 text-center text-gray-500 dark:text-gray-400 text-sm">
-      &copy; 2025 BookLend. All rights reserved.
+      &copy; 2025 bookshare. All rights reserved.
     </div>
   </footer>
 </div>

@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { BorrowService } from '../../services/borrow.service';
 import { AuthService } from '../../services/auth.service';
 import { BorrowRequest } from '../../models/borrow-request.model';
@@ -32,7 +33,8 @@ export class ManageRequestsComponent implements OnInit {
 
   constructor(
     private borrowService: BorrowService,
-    private authService: AuthService
+    private authService: AuthService,
+    private router: Router
   ) {}
 
   ngOnInit(): void {
@@ -99,7 +101,13 @@ export class ManageRequestsComponent implements OnInit {
   }
 
   cancelApprovalProcess(): void {
-    this.requestBeingApprovedId = null;
+    if (this.requestBeingApprovedId) {
+      const requestIndex = this.incomingRequests.findIndex(req => req.id === this.requestBeingApprovedId);
+      if (requestIndex !== -1) {
+        this.incomingRequests[requestIndex].isProcessing = false;
+      }
+      this.requestBeingApprovedId = null;
+    }
   }
 
   async approveRequest(): Promise<void> {
@@ -115,22 +123,37 @@ export class ManageRequestsComponent implements OnInit {
       return; // Don't clear requestBeingApprovedId, let user correct input
     }
 
-    const approvalDate = new Date();
-    const dueDate = new Date(approvalDate);
-    dueDate.setDate(approvalDate.getDate() + durationDays);
-    const customDueDate = dueDate.toISOString();
+    // Set loading state
+    const requestIndex = this.incomingRequests.findIndex(req => req.id === this.requestBeingApprovedId);
+    if (requestIndex !== -1) {
+      this.incomingRequests[requestIndex].isProcessing = true;
+    }
 
-    const requestToConfirm = this.incomingRequests.find(req => req.id === this.requestBeingApprovedId);
+    try {
+      const approvalDate = new Date();
+      const dueDate = new Date(approvalDate);
+      dueDate.setDate(approvalDate.getDate() + durationDays);
+      const customDueDate = dueDate.toISOString();
 
-    this.finalApprovalDetails = {
-      requestId: this.requestBeingApprovedId,
-      customDueDate: customDueDate,
-      loanDurationDays: durationDays,
-      bookTitle: requestToConfirm?.book?.title,
-      borrowerName: requestToConfirm?.borrower?.username || requestToConfirm?.borrower?.email || requestToConfirm?.borrower_email
-    };
-    this.isAwaitingFinalApprovalConfirmation = true;
-    // The actual service call will happen in executeFinalApproval()
+      const requestToConfirm = this.incomingRequests.find(req => req.id === this.requestBeingApprovedId);
+
+      this.finalApprovalDetails = {
+        requestId: this.requestBeingApprovedId,
+        customDueDate: customDueDate,
+        loanDurationDays: durationDays,
+        bookTitle: requestToConfirm?.book?.title,
+        borrowerName: requestToConfirm?.borrower?.username || requestToConfirm?.borrower?.email || requestToConfirm?.borrower_email
+      };
+      this.isAwaitingFinalApprovalConfirmation = true;
+    } catch (err: any) {
+      console.error('Error preparing approval:', err);
+      this.showNotification(`Error: ${err.message || 'Failed to prepare approval'}`, 'error');
+      
+      // Reset processing state on error
+      if (requestIndex !== -1) {
+        this.incomingRequests[requestIndex].isProcessing = false;
+      }
+    }
   }
 
   async executeFinalApproval(): Promise<void> {
@@ -141,19 +164,47 @@ export class ManageRequestsComponent implements OnInit {
     }
 
     const { requestId, customDueDate } = this.finalApprovalDetails;
-
+    let requestIndex = -1;
+    
     try {
-      const { error } = await this.borrowService.updateRequestStatus(requestId, 'approved', customDueDate);
-      if (error) {
-        console.error('Error approving request:', error);
-        this.showNotification(`Failed to approve request: ${error.message || 'Unknown error'}`, 'error');
-      } else {
-        this.showNotification('Request approved successfully!', 'success');
-        this.loadRequests(); // Refresh lists
+      // Find the request in the incoming requests array
+      requestIndex = this.incomingRequests.findIndex(req => req.id === requestId);
+      if (requestIndex !== -1) {
+        this.incomingRequests[requestIndex].isProcessing = true;
       }
+
+      const { data, error } = await this.borrowService.updateRequestStatus(requestId, 'approved', customDueDate);
+      
+      if (error) {
+        throw new Error(error.message || 'Failed to approve request');
+      }
+      
+      // Update the request in the local array
+      if (requestIndex !== -1 && data) {
+        this.incomingRequests[requestIndex] = {
+          ...this.incomingRequests[requestIndex],
+          ...data,
+          isProcessing: false
+        };
+      }
+      
+      this.showNotification('Request approved successfully!', 'success');
+      
+      // Refresh the list to ensure everything is in sync
+      await this.loadIncomingRequests();
+      
+      // Scroll to top of the page with smooth animation
+      this.scrollToTop();
+      
     } catch (err: any) {
-      console.error('Unexpected error approving request:', err);
-      this.showNotification(`An unexpected error occurred: ${err.message || 'Unknown error'}`, 'error');
+      console.error('Error approving request:', err);
+      this.showNotification(`Error: ${err.message || 'Failed to approve request'}`, 'error');
+      
+      // Reset processing state on error
+      if (requestIndex !== -1) {
+        this.incomingRequests[requestIndex].isProcessing = false;
+      }
+      
     } finally {
       this.isAwaitingFinalApprovalConfirmation = false;
       this.finalApprovalDetails = null;
@@ -163,54 +214,176 @@ export class ManageRequestsComponent implements OnInit {
   }
 
   cancelFinalApprovalConfirmation(): void {
+    if (this.finalApprovalDetails?.requestId) {
+      const requestIndex = this.incomingRequests.findIndex(req => req.id === this.finalApprovalDetails?.requestId);
+      if (requestIndex !== -1) {
+        this.incomingRequests[requestIndex].isProcessing = false;
+      }
+    }
     this.isAwaitingFinalApprovalConfirmation = false;
     this.finalApprovalDetails = null;
     // Keep requestBeingApprovedId and loanDurationDays as they are, so user can adjust loan duration
   }
 
-  async markAsReturned(requestId: string): Promise<void> {
+  async markAsReturned(requestId: string | undefined): Promise<void> {
+    if (!requestId) {
+      this.showNotification('Invalid request ID', 'error');
+      return;
+    }
     if (!confirm('Are you sure you want to mark this item as returned?')) {
       return;
     }
+    
+    // Find the request in both arrays
+    let requestIndex = this.outgoingRequests.findIndex(req => req.id === requestId);
+    let requestArray = this.outgoingRequests;
+    
+    if (requestIndex === -1) {
+      requestIndex = this.incomingRequests.findIndex(req => req.id === requestId);
+      requestArray = this.incomingRequests;
+    }
+    
+    if (requestIndex === -1) {
+      this.showNotification('Request not found', 'error');
+      return;
+    }
+    
+    // Set loading state
+    requestArray[requestIndex].isProcessing = true;
+
     try {
-      const { error } = await this.borrowService.markRequestAsReturned(requestId);
+      const { data, error } = await this.borrowService.markRequestAsReturned(requestId);
+      
       if (error) {
-        console.error('Error marking request as returned:', error);
-        this.showNotification(`Failed to mark as returned: ${error.message || 'Unknown error'}`, 'error');
-      } else {
-        this.showNotification('Request marked as returned successfully!', 'success');
-        this.loadRequests(); // Refresh the lists
+        throw new Error(error.message || 'Failed to mark as returned');
       }
+      
+      this.showNotification('Request marked as returned successfully!', 'success');
+      
+      // Refresh the lists to ensure everything is in sync
+      await Promise.all([
+        this.loadIncomingRequests(),
+        this.loadOutgoingRequests()
+      ]);
+      
     } catch (err: any) {
-      console.error('Unexpected error marking request as returned:', err);
-      this.showNotification(`An unexpected error occurred: ${err.message || 'Please try again.'}`, 'error');
+      console.error('Error marking request as returned:', err);
+      this.showNotification(`Error: ${err.message || 'Failed to mark as returned'}`, 'error');
+    } finally {
+      // Reset processing state
+      if (requestIndex !== -1 && requestArray[requestIndex]) {
+        requestArray[requestIndex].isProcessing = false;
+      }
     }
   }
 
-  async rejectRequest(requestId: string): Promise<void> {
+  async rejectRequest(requestId: string | undefined): Promise<void> {
+    if (!requestId) {
+      this.showNotification('Invalid request ID', 'error');
+      return;
+    }
     if (!confirm('Are you sure you want to reject this request?')) return;
+    
+    const requestIndex = this.incomingRequests.findIndex(req => req.id === requestId);
+    if (requestIndex === -1) {
+      this.showNotification('Request not found', 'error');
+      return;
+    }
+    
+    // Set loading state
+    this.incomingRequests[requestIndex].isProcessing = true;
+
     try {
       const { error } = await this.borrowService.updateRequestStatus(requestId, 'rejected');
+      
       if (error) {
         throw new Error(error.message || 'Failed to reject request.');
       }
-      this.loadIncomingRequests();
+      
+      this.showNotification('Request rejected successfully!', 'success');
+      
+      // Refresh the list to ensure everything is in sync
+      await this.loadIncomingRequests();
+      
+      // Reset approval process state if this was the request being approved
+      if (this.requestBeingApprovedId === requestId) {
+        this.requestBeingApprovedId = null;
+      }
+      
     } catch (err: any) {
       console.error('Error rejecting request:', err);
+      this.showNotification(`Error: ${err.message || 'Failed to reject request'}`, 'error');
+    } finally {
+      // Reset processing state
+      if (requestIndex !== -1 && this.incomingRequests[requestIndex]) {
+        this.incomingRequests[requestIndex].isProcessing = false;
+      }
     }
   }
 
-  async cancelRequest(requestId: string): Promise<void> {
+  async cancelRequest(requestId: string | undefined): Promise<void> {
+    if (!requestId) {
+      this.showNotification('Invalid request ID', 'error');
+      return;
+    }
     if (!confirm('Are you sure you want to cancel this request?')) return;
+    
+    const requestIndex = this.outgoingRequests.findIndex(req => req.id === requestId);
+    if (requestIndex === -1) {
+      this.showNotification('Request not found', 'error');
+      return;
+    }
+    
+    // Set loading state
+    this.outgoingRequests[requestIndex].isProcessing = true;
+    
     try {
       const { error } = await this.borrowService.updateRequestStatus(requestId, 'cancelled');
+      
       if (error) {
-        throw new Error(error.message || 'Failed to cancel request.');
+        throw new Error(error.message || 'Failed to cancel request');
       }
-      this.loadOutgoingRequests();
+      
+      this.showNotification('Request cancelled successfully!', 'success');
+      
+      // Refresh the list to ensure everything is in sync
+      await this.loadOutgoingRequests();
+      
     } catch (err: any) {
       console.error('Error cancelling request:', err);
+      this.showNotification(`Error: ${err.message || 'Failed to cancel request'}`, 'error');
+    } finally {
+      // Reset processing state
+      if (requestIndex !== -1 && this.outgoingRequests[requestIndex]) {
+        this.outgoingRequests[requestIndex].isProcessing = false;
+      }
     }
+  }
+
+  private scrollToTop(): void {
+    const duration = 1000; // 1 second duration
+    const start = window.pageYOffset;
+    const startTime = performance.now();
+    
+    // Easing function for smooth deceleration
+    const easeInOutCubic = (t: number): number => {
+      return t < 0.5 
+        ? 4 * t * t * t 
+        : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1;
+    };
+    
+    const animateScroll = (currentTime: number) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      window.scrollTo(0, start - (start * easeInOutCubic(progress)));
+      
+      if (elapsed < duration) {
+        window.requestAnimationFrame(animateScroll);
+      }
+    };
+    
+    window.requestAnimationFrame(animateScroll);
   }
 
   // Helper to update local list to avoid full reload, more advanced

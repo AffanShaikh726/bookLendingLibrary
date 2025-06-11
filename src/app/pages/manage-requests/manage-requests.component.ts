@@ -1,21 +1,37 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { BorrowService } from '../../services/borrow.service';
 import { AuthService } from '../../services/auth.service';
 import { BorrowRequest } from '../../models/borrow-request.model';
+import { StatusTagComponent } from '../../shared/components/status-tag/status-tag.component';
 
 @Component({
   selector: 'app-manage-requests',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, StatusTagComponent],
   templateUrl: './manage-requests.component.html',
   styleUrls: ['./manage-requests.component.scss']
 })
 export class ManageRequestsComponent implements OnInit {
+  // All requests
+  allOutgoingRequests: BorrowRequest[] = [];
+  allIncomingRequests: BorrowRequest[] = [];
+  
+  // Displayed requests (paginated)
   outgoingRequests: BorrowRequest[] = [];
   incomingRequests: BorrowRequest[] = [];
+  
+  // Pagination settings
+  readonly ITEMS_PER_PAGE = 6; // Show 6 items initially
+  private outgoingRequestsPage = 1;
+  private incomingRequestsPage = 1;
+  showAllOutgoing = false;
+  showAllIncoming = false;
+  hasMoreOutgoing = false;
+  hasMoreIncoming = false;
+  
   isLoadingOutgoing = true;
   isLoadingIncoming = true;
   errorOutgoing: string | null = null;
@@ -34,7 +50,8 @@ export class ManageRequestsComponent implements OnInit {
   constructor(
     private borrowService: BorrowService,
     private authService: AuthService,
-    private router: Router
+    private router: Router,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -48,15 +65,21 @@ export class ManageRequestsComponent implements OnInit {
     this.loadIncomingRequests();
   }
 
-  async loadOutgoingRequests(): Promise<void> {
-    this.isLoadingOutgoing = true;
+  async loadOutgoingRequests(loadMore: boolean = false): Promise<void> {
+    if (!loadMore) {
+      this.outgoingRequestsPage = 1;
+      this.isLoadingOutgoing = true;
+    }
     this.errorOutgoing = null;
+    
     try {
       const { data, error } = await this.borrowService.getOutgoingRequests();
       if (error) {
         throw new Error(error.message || 'Failed to load outgoing requests.');
       }
-      this.outgoingRequests = data || [];
+      
+      this.allOutgoingRequests = data || [];
+      this.updateOutgoingPagination();
     } catch (err: any) {
       this.errorOutgoing = err.message;
       console.error('Error loading outgoing requests in component:', err);
@@ -65,16 +88,42 @@ export class ManageRequestsComponent implements OnInit {
       this.isLoadingOutgoing = false;
     }
   }
+  
+  private updateOutgoingPagination(): void {
+    if (this.showAllOutgoing) {
+      this.outgoingRequests = [...this.allOutgoingRequests];
+      this.hasMoreOutgoing = false;
+    } else {
+      const endIndex = this.outgoingRequestsPage * this.ITEMS_PER_PAGE;
+      this.outgoingRequests = this.allOutgoingRequests.slice(0, endIndex);
+      this.hasMoreOutgoing = endIndex < this.allOutgoingRequests.length;
+    }
+    this.cdr.detectChanges();
+  }
+  
+  toggleOutgoingView(): void {
+    this.showAllOutgoing = !this.showAllOutgoing;
+    if (this.showAllOutgoing) {
+      this.outgoingRequestsPage = 1;
+    }
+    this.updateOutgoingPagination();
+  }
 
-  async loadIncomingRequests(): Promise<void> {
-    this.isLoadingIncoming = true;
+  async loadIncomingRequests(loadMore: boolean = false): Promise<void> {
+    if (!loadMore) {
+      this.incomingRequestsPage = 1;
+      this.isLoadingIncoming = true;
+    }
     this.errorIncoming = null;
+    
     try {
       const { data, error } = await this.borrowService.getIncomingRequests();
       if (error) {
         throw new Error(error.message || 'Failed to load incoming requests.');
       }
-      this.incomingRequests = data || [];
+      
+      this.allIncomingRequests = data || [];
+      this.updateIncomingPagination();
     } catch (err: any) {
       this.errorIncoming = err.message;
       console.error('Error loading incoming requests in component:', err);
@@ -83,15 +132,38 @@ export class ManageRequestsComponent implements OnInit {
       this.isLoadingIncoming = false;
     }
   }
+  
+  private updateIncomingPagination(): void {
+    if (this.showAllIncoming) {
+      this.incomingRequests = [...this.allIncomingRequests];
+      this.hasMoreIncoming = false;
+    } else {
+      const endIndex = this.incomingRequestsPage * this.ITEMS_PER_PAGE;
+      this.incomingRequests = this.allIncomingRequests.slice(0, endIndex);
+      this.hasMoreIncoming = endIndex < this.allIncomingRequests.length;
+    }
+    this.cdr.detectChanges();
+  }
+  
+  toggleIncomingView(): void {
+    this.showAllIncoming = !this.showAllIncoming;
+    if (this.showAllIncoming) {
+      this.incomingRequestsPage = 1;
+    }
+    this.updateIncomingPagination();
+  }
 
   showNotification(message: string, type: 'success' | 'error') {
     this.notification = { message, type };
-    // Optional: auto-dismiss after a few seconds
-    // setTimeout(() => this.dismissNotification(), 5000);
+    this.cdr.detectChanges();
+    setTimeout(() => {
+      this.dismissNotification();
+    }, 5000);
   }
 
   dismissNotification() {
     this.notification = { message: null, type: null };
+    this.cdr.detectChanges();
   }
 
   initiateApprovalProcess(requestId: string): void {

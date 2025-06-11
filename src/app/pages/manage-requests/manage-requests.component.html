@@ -46,39 +46,49 @@
     </div>
 
     <!-- Outgoing Requests List -->
-    <div *ngIf="!isLoadingOutgoing && !errorOutgoing && outgoingRequests.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <div *ngFor="let request of outgoingRequests" class="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+    <div *ngIf="!isLoadingOutgoing && !errorOutgoing && outgoingRequests.length > 0" class="space-y-4 w-full">
+      <div *ngFor="let request of outgoingRequests" class="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-200 w-full">
         <div class="p-6">
-          <h3 class="text-xl font-semibold mb-2 text-gray-800 dark:text-gray-100">{{ request.book?.title || 'Book Title Missing' }}</h3>
-          <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">Author: {{ request.book?.author || 'N/A' }}</p>
-          <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">Requested on: {{ request.request_date | date:'mediumDate' }}</p>
-          <p class="text-sm font-medium mb-3"
-             [ngClass]="{
-               'text-yellow-600 dark:text-yellow-400': request.status === 'pending',
-               'text-green-600 dark:text-green-400': request.status === 'approved',
-               'text-red-600 dark:text-red-400': request.status === 'rejected' || request.status === 'cancelled',
-               'text-blue-600 dark:text-blue-400': request.status === 'returned'
-             }">
-            Status: <span class="capitalize">{{ request.status }}</span>
-          </p>
+          <div class="flex flex-col md:flex-row md:items-start gap-4">
+            <div class="md:flex-1">
+              <h3 class="text-xl font-semibold mb-2 text-gray-800 dark:text-gray-100">{{ request.book?.title || 'Book Title Missing' }}</h3>
+              <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">Author: {{ request.book?.author || 'N/A' }}</p>
+            </div>
+            <div class="md:w-48 md:text-right">
+              <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">Requested on: {{ request.request_date | date:'mediumDate' }}</p>
+              <div class="mb-3 inline-block md:float-right">
+                <app-status-tag [status]="request.status"></app-status-tag>
+              </div>
+            </div>
+          </div>
           <div *ngIf="request.status === 'approved'" class="mt-2 text-xs text-gray-500 dark:text-gray-400">
             <p *ngIf="request.approval_date">Approved: {{ request.approval_date | date:'shortDate' }}</p>
             <p *ngIf="request.due_date">Due: {{ request.due_date | date:'shortDate' }}</p>
           </div>
-          <div *ngIf="request.status === 'returned' && request.return_date" class="mt-2 text-xs text-green-500 dark:text-green-400">
+          <div *ngIf="request.status === 'returned' && request.return_date" class="mt-2 text-xs text-green-500 dark:text-green-400 md:text-right">
             <p>Returned: {{ request.return_date | date:'shortDate' }}</p>
           </div>
           <div *ngIf="request.status === 'pending'" class="mt-4">
-            <button (click)="cancelRequest(request.id)" class="w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-md transition duration-150 ease-in-out">
+            <button (click)="cancelRequest(request.id)" class="w-full sm:w-48 bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-md transition duration-150 ease-in-out">
               Cancel Request
             </button>
           </div>
           <div *ngIf="request.status === 'approved'" class="mt-4">
-            <button (click)="markAsReturned(request.id)" class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-green-600">
+            <button (click)="markAsReturned(request.id)" class="w-full sm:w-48 bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-md transition duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 dark:bg-green-600 dark:hover:bg-green-700">
               Mark as Returned
             </button>
           </div>
         </div>
+      </div>
+      
+      <!-- Toggle View Button for Outgoing Requests -->
+      <div *ngIf="allOutgoingRequests.length > ITEMS_PER_PAGE" class="col-span-full flex justify-center mt-6">
+        <button 
+          (click)="toggleOutgoingView()"
+          class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
+        >
+          {{ showAllOutgoing ? 'Show Less' : 'Show All' }}
+        </button>
       </div>
     </div>
   </section>
@@ -105,34 +115,35 @@
     </div>
 
     <!-- Incoming Requests List -->
-    <div *ngIf="!isLoadingIncoming && !errorIncoming && incomingRequests.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <div *ngFor="let request of incomingRequests" class="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+    <div *ngIf="!isLoadingIncoming && !errorIncoming && incomingRequests.length > 0" class="space-y-4 w-full">
+      <div *ngFor="let request of incomingRequests" class="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-200 w-full">
         <div class="p-6">
-          <h3 class="text-xl font-semibold mb-2 text-gray-800 dark:text-gray-100">{{ request.book?.title || 'Book Title Missing' }}</h3>
-          <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">Requested by: {{ request.borrower?.username || request.borrower?.email || request.borrower_id || 'N/A' }}</p>
-          <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">Requested on: {{ request.request_date | date:'mediumDate' }}</p>
-          <p class="text-sm font-medium mb-3"
-             [ngClass]="{
-               'text-yellow-600 dark:text-yellow-400': request.status === 'pending',
-               'text-green-600 dark:text-green-400': request.status === 'approved',
-               'text-red-600 dark:text-red-400': request.status === 'rejected' || request.status === 'cancelled',
-               'text-blue-600 dark:text-blue-400': request.status === 'returned'
-             }">
-            Status: <span class="capitalize">{{ request.status }}</span>
-          </p>
-          <div *ngIf="request.status === 'approved'" class="mt-2 text-xs text-gray-500 dark:text-gray-400">
-            <p *ngIf="request.approval_date">Approved: {{ request.approval_date | date:'shortDate' }}</p>
-            <p *ngIf="request.due_date">Due: {{ request.due_date | date:'shortDate' }}</p>
+          <div class="flex flex-col md:flex-row md:items-start gap-4">
+            <div class="md:flex-1">
+              <h3 class="text-xl font-semibold mb-2 text-gray-800 dark:text-gray-100">{{ request.book?.title || 'Book Title Missing' }}</h3>
+              <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">Requested by: {{ request.borrower?.username || request.borrower?.email || request.borrower_id || 'N/A' }}</p>
+            </div>
+            <div class="md:w-48 md:text-right">
+              <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">Requested on: {{ request.request_date | date:'mediumDate' }}</p>
+              <div class="mb-3 inline-block md:float-right">
+                <app-status-tag [status]="request.status"></app-status-tag>
+              </div>
+              <div class="clear-both">
+                <div *ngIf="request.status === 'approved'" class="mt-2 text-xs text-gray-500 dark:text-gray-400 md:text-right">
+                  <p *ngIf="request.approval_date">Approved: {{ request.approval_date | date:'shortDate' }}</p>
+                  <p *ngIf="request.due_date">Due: {{ request.due_date | date:'shortDate' }}</p>
+                </div>
+                <div *ngIf="request.status === 'returned' && request.return_date" class="mt-2 text-xs text-green-500 dark:text-green-400 md:text-right">
+                  <p>Returned: {{ request.return_date | date:'shortDate' }}</p>
+                </div>
+              </div>
+            </div>
           </div>
-          <div *ngIf="request.status === 'returned' && request.return_date" class="mt-2 text-xs text-green-500 dark:text-green-400">
-            <p>Returned: {{ request.return_date | date:'shortDate' }}</p>
-          </div>
-          <!-- Standard Actions for Pending Requests -->
-          <div *ngIf="request.status === 'pending' && request.id !== requestBeingApprovedId" class="mt-4 flex space-x-3">
+          <div *ngIf="request.status === 'pending' && request.id !== requestBeingApprovedId" class="mt-4 flex flex-col sm:flex-row gap-3 max-w-md">
             <button 
               (click)="initiateApprovalProcess(request.id!)" 
               [disabled]="request.isProcessing"
-              class="flex-1 bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-md transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+              class="w-full sm:w-48 bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-md transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
             >
               <span *ngIf="!request.isProcessing">Approve</span>
               <span *ngIf="request.isProcessing" class="flex items-center">
@@ -146,7 +157,7 @@
             <button 
               (click)="rejectRequest(request.id!)" 
               [disabled]="request.isProcessing"
-              class="flex-1 bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-md transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+              class="w-full sm:w-48 bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-md transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
             >
               <span *ngIf="!request.isProcessing">Reject</span>
               <span *ngIf="request.isProcessing" class="flex items-center">
@@ -159,26 +170,30 @@
             </button>
           </div>
 
-          <!-- Inline Approval Form & Final Confirmation -->
           <div *ngIf="request.status === 'pending' && request.id === requestBeingApprovedId" class="mt-4 p-4 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700">
-            
-            <!-- Step 1: Set Loan Duration -->
             <div *ngIf="!isAwaitingFinalApprovalConfirmation">
               <label for="loanDuration-{{request.id}}" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Loan duration (days):</label>
               <input type="number" id="loanDuration-{{request.id}}" [(ngModel)]="loanDurationDays" 
                      class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100" 
                      min="1" placeholder="e.g., 14">
-              <div class="mt-3 flex justify-end space-x-2">
-                <button (click)="cancelApprovalProcess()" type="button" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-600 hover:bg-gray-50 dark:hover:bg-gray-500 border border-gray-300 dark:border-gray-500 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+              <div class="mt-3 flex flex-col sm:flex-row justify-end gap-3">
+                <button 
+                  (click)="cancelApprovalProcess()" 
+                  type="button" 
+                  class="w-full sm:w-36 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-600 hover:bg-gray-50 dark:hover:bg-gray-500 border border-gray-300 dark:border-gray-500 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out"
+                >
                   Cancel Process
                 </button>
-                <button (click)="approveRequest()" type="button" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                <button 
+                  (click)="approveRequest()" 
+                  type="button" 
+                  class="w-full sm:w-48 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out"
+                >
                   Proceed to Confirm
                 </button>
               </div>
             </div>
 
-            <!-- Step 2: Final Confirmation -->
             <div *ngIf="isAwaitingFinalApprovalConfirmation && finalApprovalDetails?.requestId === request.id">
               <h4 class="text-md font-semibold text-gray-800 dark:text-gray-200 mb-2">Confirm Approval</h4>
               <p class="text-sm text-gray-700 dark:text-gray-300 mb-3">
@@ -188,16 +203,23 @@
                 Calculated Due Date: <strong class="text-gray-900 dark:text-gray-100">{{ finalApprovalDetails?.customDueDate | date:'mediumDate' }}</strong> ({{finalApprovalDetails?.loanDurationDays}} days)
               </p>
               <p class="text-sm text-gray-600 dark:text-gray-400 mt-3 mb-3">Are you sure you want to approve this request with the details above?</p>
-              <div class="mt-3 flex justify-end space-x-2">
-                <button (click)="cancelFinalApprovalConfirmation()" type="button" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-600 hover:bg-gray-50 dark:hover:bg-gray-500 border border-gray-300 dark:border-gray-500 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+              <div class="mt-3 flex flex-col sm:flex-row justify-end gap-3">
+                <button 
+                  (click)="cancelFinalApprovalConfirmation()" 
+                  type="button" 
+                  class="w-full sm:w-36 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-600 hover:bg-gray-50 dark:hover:bg-gray-500 border border-gray-300 dark:border-gray-500 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out"
+                >
                   No, Go Back
                 </button>
-                <button (click)="executeFinalApproval()" type="button" class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                <button 
+                  (click)="executeFinalApproval()" 
+                  type="button" 
+                  class="w-full sm:w-48 px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-150 ease-in-out"
+                >
                   Yes, Approve Request
                 </button>
               </div>
             </div>
-
           </div>
           <div *ngIf="request.status === 'approved'" class="mt-4 flex justify-end">
             <button (click)="markAsReturned(request.id)" class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-green-600">
@@ -205,6 +227,16 @@
             </button>
           </div>
         </div>
+      </div>
+      
+      <!-- Toggle View Button for Incoming Requests -->
+      <div *ngIf="allIncomingRequests.length > ITEMS_PER_PAGE" class="col-span-full flex justify-center mt-6">
+        <button 
+          (click)="toggleIncomingView()"
+          class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
+        >
+          {{ showAllIncoming ? 'Show Less' : 'Show All' }}
+        </button>
       </div>
     </div>
   </section>

@@ -1,4 +1,4 @@
-# Book Lending Library
+# 📚 Book Lending Library
 
 A modern Angular-based web application for managing book lending in a library or community setting. This application allows users to browse available books, request to borrow them, and manage book inventory.
 
@@ -17,22 +17,33 @@ A modern Angular-based web application for managing book lending in a library or
 - **Authentication & Database**: Supabase
 - **State Management**: RxJS
 - **Type Safety**: TypeScript
-
+- **Form Handling**: Reactive Forms
+- **Routing**: Angular Router
 
 ## 🏗️ Project Structure
 
 ```
 src/
 ├── app/
-│   ├── components/       # Reusable components
-│   ├── guards/          # Route guards
-│   ├── layout/          # Layout components
-│   ├── models/          # TypeScript interfaces/models
-│   ├── pages/           # Feature pages
-│   ├── services/        # API and data services
-│   ├── app.component.*  # Root component
-│   ├── app.config.ts    # Application configuration
-│   └── app.routes.ts    # Application routes
+│   ├── auth/           # Authentication related components and services
+│   ├── components/     # Reusable UI components
+│   ├── guards/         # Route guards for authentication and authorization
+│   ├── layout/         # Layout components (header, footer, sidebar)
+│   ├── models/         # TypeScript interfaces and types
+│   ├── pages/          # Feature modules and pages
+│   │   ├── admin/      # Admin specific pages
+│   │   ├── books/      # Book related pages
+│   │   ├── profile/    # User profile pages
+│   │   └── ...
+│   ├── services/      # Application services
+│   │   ├── auth.service.ts      # Authentication service
+│   │   ├── book.service.ts      # Book management service
+│   │   ├── borrow.service.ts    # Borrowing logic service
+│   │   └── supabase.service.ts  # Supabase integration
+│   ├── shared/         # Shared modules and components
+│   ├── app.component.* # Root component
+│   ├── app.config.ts   # Application configuration
+│   └── app.routes.ts   # Application routing
 ```
 
 ## 📄 License

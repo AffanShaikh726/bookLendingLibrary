@@ -46,6 +46,16 @@ src/
 │   └── app.routes.ts   # Application routing
 ```
 
+## 🚀 Deployment
+
+This application is hosted on Vercel for seamless deployment and continuous integration. Vercel provides:
+
+- Automatic deployments on every push to the main branch
+- Preview deployments for pull requests
+- Serverless functions for backend operations
+- Global CDN for fast content delivery
+- Easy rollback to previous versions
+
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
